@@ -49,29 +49,4 @@ def cdl_retry(tries=1,
             if res:
                 return res
             time.sleep(interval)
-    
-"""
-class Commands:
 
-    ping = [
-            'PING', # to client
-            'PONG' # from client
-    ]
-
-    chconf = [
-            'CUP', # Client UPdate, config push to client
-            'SUP', # Server UPdate, config get from client
-    ]
-
-    system = [
-            'CREATE',
-            'DELETE',
-            'UPDATE',
-            'SELECT'
-    ]
-
-    ack = ['ACK', 'NACK']
-
-
-command_list = Commands()    
-"""
