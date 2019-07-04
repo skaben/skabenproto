@@ -1,15 +1,3 @@
-# misc
-*.db
-*.swp
-*.rdb
-logs/
-tests/logs/
-.sass-cache
-*.lock
-skaben/todo.py
-sk_rest/
-sk_iface/migrations/
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
