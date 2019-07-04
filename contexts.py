@@ -1,5 +1,4 @@
-from .helpers import *
-from .packets import *
+from packets import *
 
 CMD = {
         'PING': PING,  # heartbeat, broadcast
@@ -8,7 +7,8 @@ CMD = {
         'NACK': NACK,  # confirm fail (to CUP/SUP)
         'WAIT': WAIT,  # device stop sending PONGs for a time
         'CUP': CUP,  # Client UPdate config from server
-        'SUP': SUP  # Server UPdate config from client
+        'SUP': SUP,  # Server UPdate config from client
+        'INFO': INFO  # other operations
 }
 
 
@@ -31,110 +31,89 @@ class BaseContext:
         return json.dumps(self.data)
 
 
-class PacketSender(BaseContext):
-    """
-        Packet context creates packets from packets
-    """
+class PacketEncoder(BaseContext):
 
-    def __init__(self):
-        super().__init__()
-        self.cmd = CMD
-
-    def create(self, packet_type, **kwargs):
-        p = self.cmd.get(packet_type)
-        self.packet = p(**kwargs)
-        return self.packet
-
-
-class PacketReceiver(BaseContext):
-    """
-        This context decodes information from MQTT packets
-    """
+    # packet encoder methods namespace
 
     def __init__(self):
         super().__init__()
 
-    # def decode(self, msg):
-    #     if isinstance(msg, bytes):
-    #         msg = msg.decode('utf-8')
+    def load(self, packet_type, **kwargs):
+        p = CMD.get(packet_type)
+        if not p:
+            raise Exception('cannot encode packet for {}'.format(packet_type))
+        packet = p(**kwargs)
+        return packet
 
-    #     try:
-    #         res = json.loads(msg.replace("'", '"'))
-    #     except:
-    #         raise Exception('cannot decode message')
+    def encode(self, packet):
+        if not packet:
+            raise Exception('cannot encode empty packet - packet should be '
+                            'created first')
+        data = {}
+        # encoding packet
+        if packet.uid:
+            # unicast, send by name
+            topic = sjoin((packet.dev_type, str(packet.uid)))
+        else:
+            # broadcast, send by device type
+            topic = packet.dev_type
+        data.update({'ts': packet.ts})
+        # update additional fields
+        if hasattr(packet, 'payload'):
+            data.update(**packet.payload)
+        data = json.dumps(data).replace("'", '"')
+        payload = sjoin((packet.command, data))
+        return tuple((topic, payload))
 
-    #     if res.get('payload', None):
-    #         if isinstance(res['payload'], str):
-    #             try:
-    #                 res['payload'] = json.loads(res['payload'])
-    #             except:
-    #                 raise Exception('cannot decode payload')
 
-    #     self.from_dict(res)
-    #     return self.data
+class PacketDecoder(BaseContext):
 
+    # packet decoder methods namespace
 
-    def _check_args(self, arglist):
-        for k in arglist:
-            if not self.data.get(k, None):
-                err = 'missing {} from {}'.format(k, self.data)
-                raise Exception(err)
+    def __init__(self):
+        super().__init__()
 
-    def _dtype(self, arg):
-        """
-            device type from message topic
-        """
-        if arg.endswith('ask'):
-            arg = arg[:-3]
-        return arg
-
-    def _command(self, arg):
-        """
-            command from message payload
-        """
-        if arg not in CMD:
-            raise Exception('unknown command: %s' % cmd)
-        return arg
-
-    def _payload(self, arg):
-        if not arg:
-            return
+    def decode(self, message):
+        # decoding packet from mqtt message
+        data = {}
+        # checking for invalid message format
+        for attr in ('topic', 'payload'):
+            if not hasattr(message, attr):
+                raise Exception('attr <{}> missing from data {}' \
+                                .format(attr, message))
+        # from paho.mqtt topic received as string, but payload as b''
         try:
-            pl = pl_decode(arg)
+            msg_topic = safelist(message.topic.split('/'))
+            msg_payload = safelist(message.payload.decode("utf-8").split('/'))
         except:
-            raise Exception('cannot decode payload')
+            #logging.exception('cannot decode {}'.format(message))
+            raise
+        # necessary field management
+        data['dev_type'] = msg_topic.get(0, None)
+        data['command'] = msg_payload.get(0, None)
+        data['payload'] = msg_payload.get(1, None)
+        # check for missing parts
+        for field in ('dev_type', 'command', 'payload'):
+            if not data.get(field):
+                raise Exception('field <{}> missing from data {}' \
+                                .format(field, data))
+        # checking for martians
+        if data['command'] not in CMD:
+            raise Exception('unknown command <{}> in data <{}>'\
+                                .format(data['command'], data))
+        # this field is missing in broadcast packets
+        data['uid'] = msg_topic.get(1, None)
+        # payload managing
+        _decoded_pl = json.loads(data['payload'])
+        self.dec = _decoded_pl
+        data['ts'] = _decoded_pl.get('ts', None)
+        data['task_id'] = _decoded_pl.get('task_id', None)
+        data['payload'] = _decoded_pl
+        # timestamp is necessary, task_id is not
+        #if not data.get('ts'):
+        #    raise Exception('missing timestamp in packet: {}'.format(data))
+        # assigning for possible future use in context
+        self.data = data
+        return data
 
-        # optional fields parsing
-        self.ts = pl.get('ts', 0)
 
-        if self.data['command'] in (('ACK', 'NACK')):
-            self.task_id = pl.get('task_id', None)
-            if not self.task_id:
-                raise Exception('missing task_id for %s' % self)
-        # TODO: etc, check optional fields for other packets
-        return pl
-
-    def create(self, msg):
-        """
-            parse packet, make consistency checks
-        """
-        topic = safelist(msg.topic.split('/'))
-        try:
-            message = safelist(msg.payload.decode("utf-8").split('/'))
-        except:
-            print('cannot decode %s' % msg)
-        # critical fields
-        self.data['dev_type'] = self._dtype(topic.get(0, None))
-        self.data['command'] = self._command(message.get(0, None))
-        self.data['payload'] = self._payload(message.get(1, None))
-        self._check_args(('dev_type', 'command', 'payload'))
-        # optional fields
-        self.data['uid'] = topic.get(1, None)
-
-        return self.data
-
-    def jsonify(self):
-        try:
-            return json.dumps(self.data)
-        except:
-            raise Exception('cannot encode data')
