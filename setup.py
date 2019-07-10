@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 with open("README.md", 'r') as f:
     long_description = f.read()
@@ -12,5 +12,5 @@ setup(
    author='Zerthmonk',
    author_email='zerthmonk@pm.me',
    url="yantratekk.me",
-   packages=['src'],  #same as name
+   packages=['skabenproto'], 
 )

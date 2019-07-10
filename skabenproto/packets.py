@@ -1,4 +1,7 @@
-from helpers import *
+import time
+from skabenproto.helpers import *
+
+CURRENT = int(time.time())
 
 class BasePacket:
     """
@@ -9,7 +12,7 @@ class BasePacket:
     dev_type = str()  # device type
     command = str()  # command
 
-    def __init__(self, dev_type, ts=int(time.time()), uid=None):
+    def __init__(self, dev_type, ts=CURRENT, uid=None):
         self.command = str()  # command, assign in child classes
         self.ts = ts # timestamp on start, should be external if client
         self.dev_type = dev_type  # group channel address
@@ -34,7 +37,7 @@ class ACK(BasePacket):
         Confirm operations on previous packet as successful
         Should send ts of previous packet
     """
-    def __init__(self, dev_type, task_id, uid, ts=None):
+    def __init__(self, dev_type, task_id, uid, ts=CURRENT):
         super().__init__(dev_type=dev_type,
                          uid=uid,
                          ts=ts)
@@ -47,7 +50,7 @@ class NACK(BasePacket):
         Confirm operations on previous packet as unsuccessful
         Should send ts of previous packet
     """
-    def __init__(self, dev_type, task_id, uid, ts=None):
+    def __init__(self, dev_type, task_id, uid, ts=CURRENT):
         super().__init__(dev_type=dev_type,
                          uid=uid,
                          ts=ts)
@@ -61,7 +64,7 @@ class WAIT(BasePacket):
         before sending another PONG client should either
         wait timeout or receive nowait-packet (CUP/SUP)
     """
-    def __init__(self, dev_type, timeout, uid, ts=None):
+    def __init__(self, dev_type, timeout, uid, ts=CURRENT):
         super().__init__(dev_type=dev_type,
                          uid=uid,
                          ts=ts)
@@ -82,7 +85,7 @@ class PING(BasePacket):
     """
         Ping packet. Broadcast only.
     """
-    def __init__(self, dev_type, uid=None, ts=None):
+    def __init__(self, dev_type, uid=None, ts=CURRENT):
         super().__init__(dev_type=dev_type,
                          ts=ts,
                          uid=uid)
@@ -94,7 +97,7 @@ class PONG(BasePacket):
         PONG packet, send only in response to PING
         Should send timestamp value of PING
     """
-    def __init__(self, dev_type, uid, ts=None):
+    def __init__(self, dev_type, uid, ts=CURRENT):
         super().__init__(dev_type=dev_type,
                          uid=uid,
                          ts=ts)
@@ -110,7 +113,7 @@ class PayloadPacket(BasePacket):
 
     payload = {} # packet inner payload
 
-    def __init__(self, dev_type, payload, uid=None, ts=None, task_id=None):
+    def __init__(self, dev_type, payload, uid=None, ts=CURRENT, task_id=None):
         super().__init__(dev_type=dev_type,
                          uid=uid,
                          ts=ts)
@@ -146,7 +149,7 @@ class CUP(PayloadPacket):
     """
         Client UPdate - update client config
     """
-    def __init__(self, dev_type, payload, task_id, uid=None, ts=None):
+    def __init__(self, dev_type, payload, task_id, uid=None, ts=CURRENT):
         super().__init__(dev_type=dev_type,
                          payload=payload,
                          task_id=task_id,
@@ -160,7 +163,7 @@ class SUP(PayloadPacket):
     """
         Server UPdate - update server config
     """
-    def __init__(self, dev_type, payload, uid, ts=None, task_id=None):
+    def __init__(self, dev_type, payload, uid, ts=CURRENT, task_id=None):
         super().__init__(dev_type=dev_type,
                          payload=payload,
                          task_id=task_id,

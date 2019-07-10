@@ -1,4 +1,4 @@
-from packets import *
+from skabenproto.packets import *
 
 CMD = {
         'PING': PING,  # heartbeat, broadcast
