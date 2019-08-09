@@ -67,8 +67,10 @@ class PacketEncoder(BaseContext):
         packet = p(**kwargs)
         return packet
 
-    def encode(self, packet, timestamp=int(time.time())):
+    def encode(self, packet, timestamp=None):
         self.data = {}
+        if not timestamp:
+            timestamp = int(time.time())
         self.timestamp = timestamp  # save "encoded at" for tests
         if not packet:
             raise Exception('cannot encode empty packet - packet should be '
