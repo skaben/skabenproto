@@ -85,7 +85,8 @@ class PacketEncoder(BaseContext):
         # assign timestamp
         self.data.update({'ts': timestamp})
         # filtering data
-        _filtered_data = {k:v for k,v in packet.payload.items() if v}
+        _filtered_data = {k:v for k,v in packet.payload.items()
+                              if v is not None}
         # update additional fields
         if hasattr(packet, 'payload'):
             self.data.update(**_filtered_data)

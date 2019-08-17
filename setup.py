@@ -5,7 +5,7 @@ with open("README.md", 'r') as f:
 
 setup(
    name='skabenproto',
-   version='1.1',
+   version='1.12',
    description='SKABEN protocol',
    license="MIT",
    long_description=long_description,
