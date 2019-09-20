@@ -82,16 +82,20 @@ class PacketEncoder(BaseContext):
         else:
             # broadcast, send by device type
             topic = packet.dev_type
-        # assign timestamp
-        self.data.update({'ts': timestamp})
-        # filtering data
-        _filtered_data = {k:v for k,v in packet.payload.items()
-                              if v is not None}
-        # update additional fields
-        if hasattr(packet, 'payload'):
-            self.data.update(**_filtered_data)
-        data = json.dumps(self.data).replace("'", '"')
+        if packet.dev_type != 'dumb':
+            # assign timestamp
+            self.data.update({'ts': timestamp})
+            # filtering data
+            _filtered_data = {k:v for k,v in packet.payload.items()
+                                  if v is not None}
+            # update additional fields
+            if hasattr(packet, 'payload'):
+                self.data.update(**_filtered_data)
+            data = json.dumps(self.data).replace("'", '"')
+        else:
+            data = packet.payload
         payload = sjoin((packet.command, data))
+            
         return tuple((topic, payload))
 
 

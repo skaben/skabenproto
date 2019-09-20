@@ -1,3 +1,5 @@
+import json
+
 class BasePacket:
     """
         Base packet class
@@ -123,7 +125,10 @@ class PayloadPacket(BasePacket):
 
         if task_id:
             self.payload.update({'task_id': task_id})
-        self.payload.update(**payload)
+        if not dev_type == 'dumb':
+            self.payload.update(**payload)
+        else:
+            self.payload = payload
 
 
 class INFO(PayloadPacket):
