@@ -13,7 +13,7 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-#dist/  # because lack of local pypi
+dist/  # because lack of local pypi
 downloads/
 eggs/
 .eggs/
