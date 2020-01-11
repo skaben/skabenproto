@@ -8,6 +8,8 @@ import skabenproto.contexts as contexts
 from skabenproto.tests.mocks import dev_types, TS, UID, TASK_ID
 from skabenproto.tests.mocks import get_random_from
 
+# TODO: packet detailed testing
+
 # encoder test
 # strange behavior with task_id
 @pytest.mark.parametrize('cmd', ('WAIT',))
@@ -18,12 +20,11 @@ def test_encoder(cmd, fake_mqtt):
     _payload = '{}/{{\"ts\": {}}}'.format(cmd, TS)
     with contexts.PacketEncoder() as encoder:
         pkg = BasePacket(dev_type=dev_type)
-        pkg.command = cmd # for example
-        assert not pkg.payload.get('task_id'), \
-            f'bad task_id assigned by package {pkg}'
+        pkg.command = cmd
         message = encoder.encode(pkg, TS)
-        assert not encoder.data.get('task_id'), \
-            f'bad task_id from encoder: {message}'
+        assert pkg.payload is None, f'{pkg.payload}'
+        assert not pkg.payload.get('task_id'), f'task_id assigned by package {pkg}'
+        assert not encoder.data.get('task_id'), f'task_id assigned by encoder: {message}'
         assert encoder.timestamp == TS, 'bad encoder timestamp'
         assert message[0] == _topic, message
         assert message[1] == _payload, message

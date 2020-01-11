@@ -1,5 +1,3 @@
-import json
-
 class BasePacket:
     """
         Base packet class
@@ -15,7 +13,6 @@ class BasePacket:
         self.dev_type = dev_type  # group channel address
 
         # WARNING: uid here will be used for addressing.
-        # for any other purposes, you should pass device name with 'data'
         self.uid = uid  # personal channel address, optional
 
     def __repr__(self):
@@ -27,6 +24,7 @@ class BasePacket:
         return '<{}> {}'.format(self.command, ident)
 
 # ping packets
+
 
 class PING(BasePacket):
     """
@@ -61,6 +59,27 @@ class PINGLegacy(BasePacket):
 
 # service packets
 
+
+class WAIT(BasePacket):
+    """
+        Sent in response of PONG, currently
+        before sending another PONG client should either
+        wait timeout or receive nowait-packet (CUP/SUP)
+    """
+    def __init__(self, dev_type, timeout, uid):
+        super().__init__(dev_type=dev_type,
+                         uid=uid,
+                         )
+
+        if not isinstance(timeout, int):
+            try:
+                timeout = round(int(timeout))
+            except Exception:
+                raise ValueError('bad timeout value: %s' % timeout)
+        self.command = 'WAIT'
+        self.payload.update({'timeout': timeout})
+
+
 class ACK(BasePacket):
     """
         Confirm operations on previous packet as successful
@@ -87,36 +106,15 @@ class NACK(BasePacket):
         self.payload.update({'task_id': task_id})
 
 
-class WAIT(BasePacket):
-    """
-        Sent in response of PONG, currently
-        before sending another PONG client should either
-        wait timeout or receive nowait-packet (CUP/SUP)
-    """
-    def __init__(self, dev_type, timeout, uid):
-        super().__init__(dev_type=dev_type,
-                         uid=uid,
-                         )
-
-        if isinstance(timeout, float):
-            timeout = int(timeout)
-
-        if not isinstance(timeout, int):
-            try:
-                timeout = round(int(timeout))
-            except Exception:
-                raise ValueError('bad timeout value: %s' % timeout)
-        self.command = 'WAIT'
-        self.payload.update({'timeout': timeout})
-
 # packets with payload
+
 
 class PayloadPacket(BasePacket):
     """
         Loaded packet basic class.
     """
 
-    payload = {} # packet inner payload
+    payload = {}  # packet inner payload
 
     def __init__(self, dev_type, payload,  uid=None, task_id=None):
         super().__init__(dev_type=dev_type,
@@ -125,6 +123,8 @@ class PayloadPacket(BasePacket):
 
         if task_id:
             self.payload.update({'task_id': task_id})
+        if not isinstance(payload, dict):
+            raise Exception(f'payload should be a dictionary, not a {type(payload)}')
         if not dev_type == 'dumb':
             self.payload.update(**payload)
         else:
@@ -135,7 +135,7 @@ class INFO(PayloadPacket):
     """
         Multipurpose payload packet
     """
-    def __init__(self, dev_type, payload, uid,  task_id=None):
+    def __init__(self, dev_type, payload, uid, task_id=None):
         super().__init__(dev_type=dev_type,
                          payload=payload,
                          task_id=task_id,
@@ -171,4 +171,3 @@ class SUP(PayloadPacket):
                          )
 
         self.command = 'SUP'
-

@@ -1,0 +1,10 @@
+version: "3"
+
+services:
+  test:
+    build:
+      context: .
+    volumes:
+      - ./skabenproto:/skabenproto
+    command: sh -c
+      "flake8 /skabenproto && pytest /skabenproto"

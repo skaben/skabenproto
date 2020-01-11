@@ -1,5 +1,4 @@
 import json
-import time
 
 from skabenproto.packets import PING, PONG, ACK, NACK, WAIT, CUP, SUP, INFO
 from skabenproto.packets import PINGLegacy
@@ -17,6 +16,7 @@ CMD = {
 }
 
 # helpers
+
 
 class SafeList(list):
     def get(self, index, default=None):
@@ -70,7 +70,7 @@ class PacketEncoder(BaseContext):
     def encode(self, packet, timestamp=None):
         self.data = {}
         if not timestamp:
-            timestamp = int(time.time())
+            timestamp = 0
         self.timestamp = timestamp  # save "encoded at" for tests
         if not packet:
             raise Exception('cannot encode empty packet - packet should be '
@@ -86,16 +86,15 @@ class PacketEncoder(BaseContext):
             # assign timestamp
             self.data.update({'ts': timestamp})
             # filtering data
-            _filtered_data = {k:v for k,v in packet.payload.items()
-                                  if v is not None}
+            _filtered_data = {k: v for k, v in packet.payload.items() if v is not None}
             # update additional fields
             if hasattr(packet, 'payload'):
                 self.data.update(**_filtered_data)
-            data = json.dumps(self.data).replace("'", '"')
+            data = self.data
         else:
             data = packet.payload
-        payload = sjoin((packet.command, data))
-            
+        payload = sjoin((packet.command, json.dumps(data)))
+
         return tuple((topic, payload))
 
 
@@ -112,25 +111,23 @@ class PacketDecoder(BaseContext):
         # checking for invalid message format
         for attr in ('topic', 'payload'):
             if not hasattr(message, attr):
-                raise Exception('attr <{}> missing from data {}' \
-                                .format(attr, message))
+                raise Exception('attr <{}> missing from data {}'.format(attr, message))
         # from paho.mqtt topic received as string, but payload as b''
         try:
             msg_topic = SafeList(message.topic.split('/'))
             msg_payload = SafeList(message.payload.decode("utf-8").split('/'))
-        except:
-            #logging.exception('cannot decode {}'.format(message))
+        except Exception:
+            # logging.exception('cannot decode {}'.format(message))
             raise
         # necessary field management
-        data['dev_type'] = msg_topic.get(0, None)
-        data['command'] = msg_payload.get(0, None)
-        data['payload'] = msg_payload.get(1, None)
+        data['dev_type'] = msg_topic.get(0)
+        data['command'] = msg_payload.get(0)
+        data['payload'] = msg_payload.get(1)
 
         # check for missing parts
         for field in ('dev_type', 'command', 'payload'):
             if not data.get(field):
-                raise Exception('field <{}> missing from data {}' \
-                                .format(field, data))
+                raise Exception('field <{}> missing from data {}'.format(field, data))
 
         # cut unneeded response marker
         if data['dev_type'].endswith('ask'):
@@ -138,16 +135,13 @@ class PacketDecoder(BaseContext):
 
         # checking for martians
         if data['command'] not in CMD:
-            raise Exception('unknown command <{}> in data <{}>'\
-                                .format(data['command'], data))
+            raise Exception('unknown command <{}> in data <{}>'.format(data['command'], data))
         # this field is missing in broadcast packets
-        data['uid'] = msg_topic.get(1, None)
+        data['uid'] = msg_topic.get(1)
         # payload managing
         _decoded_pl = json.loads(data['payload'])
-        data['ts'] = _decoded_pl.get('ts', None)
-        data['task_id'] = _decoded_pl.get('task_id', None)
+        data['ts'] = _decoded_pl.get('ts', 0)
+        data['task_id'] = _decoded_pl.get('task_id', 0)
         data['payload'] = _decoded_pl
 
         return data
-
-
