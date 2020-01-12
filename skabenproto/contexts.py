@@ -39,6 +39,7 @@ class BaseContext:
 
     def __init__(self):
         self.data = dict()
+        self.timestamp = 0
 
     def __enter__(self):
         return self
@@ -54,46 +55,38 @@ class PacketEncoder(BaseContext):
 
     # packet encoder methods namespace
 
-    timestamp = int()  # packet encoding time
-    data = dict()  # for testing purposes
-
     def __init__(self):
         super().__init__()
 
-    def load(self, packet_type, **kwargs):
+    @staticmethod
+    def load(packet_type, **kwargs):
         p = CMD.get(packet_type)
         if not p:
-            raise Exception('cannot encode packet for {}'.format(packet_type))
+            raise Exception('cannot load packet for {}'.format(packet_type))
         packet = p(**kwargs)
         return packet
 
     def encode(self, packet, timestamp=None):
-        self.data = {}
         if not timestamp:
-            timestamp = 0
+            timestamp = int(0)
         self.timestamp = timestamp  # save "encoded at" for tests
         if not packet:
             raise Exception('cannot encode empty packet - packet should be '
                             'loaded first')
-        # encoding packet
+
         if packet.uid:
-            # unicast, send by name
-            topic = sjoin((packet.dev_type, str(packet.uid)))
+            topic = sjoin((packet.dev_type, str(packet.uid)))  # unicast, send by name
         else:
-            # broadcast, send by device type
-            topic = packet.dev_type
+            topic = packet.dev_type  # broadcast, send by device type
+
         if packet.dev_type != 'dumb':
-            # assign timestamp
-            self.data.update({'ts': timestamp})
-            # filtering data
             _filtered_data = {k: v for k, v in packet.payload.items() if v is not None}
-            # update additional fields
             if hasattr(packet, 'payload'):
                 self.data.update(**_filtered_data)
-            data = self.data
         else:
-            data = packet.payload
-        payload = sjoin((packet.command, json.dumps(data)))
+            self.data = packet.payload  # dumb data pass as is
+        self.data.update({'ts': timestamp})
+        payload = sjoin((packet.command, json.dumps(self.data)))
 
         return tuple((topic, payload))
 

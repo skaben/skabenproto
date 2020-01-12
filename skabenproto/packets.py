@@ -3,17 +3,14 @@ class BasePacket:
         Base packet class
     """
 
-    payload = dict()  # packet payload
-    dev_type = str()  # device type
-    command = str()  # command
-    ts = str()  # timestamp will be assigned when encoding
-
     def __init__(self, dev_type, uid=None):
+        self.payload = dict()  # data payload
         self.command = str()  # command, assign in child classes
         self.dev_type = dev_type  # group channel address
 
         # WARNING: uid here will be used for addressing.
         self.uid = uid  # personal channel address, optional
+        self.ts = None  # timestamp will be assigned by encoder
 
     def __repr__(self):
         if self.uid:
@@ -30,7 +27,7 @@ class PING(BasePacket):
     """
         Ping packet. Broadcast only.
     """
-    def __init__(self, dev_type,  uid=None):
+    def __init__(self, dev_type, uid=None):
         super().__init__(dev_type=dev_type,
                          uid=uid)
         self.command = 'PING'

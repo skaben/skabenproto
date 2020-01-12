@@ -2,69 +2,93 @@ import time
 import json
 import pytest
 
-from skabenproto.packets import BasePacket
+import skabenproto.packets as packets
 import skabenproto.contexts as contexts
 
 from skabenproto.tests.mocks import dev_types, TS, UID, TASK_ID
 from skabenproto.tests.mocks import get_random_from
 
-# TODO: packet detailed testing
 
-# encoder test
-# strange behavior with task_id
-@pytest.mark.parametrize('cmd', ('WAIT',))
-def test_encoder(cmd, fake_mqtt):
+def test_encoder_load(fake_mqtt):
+    """ Smoke test encoder load method"""
+    cmd = 'PING'  # most basic packet
     dev_type = get_random_from(dev_types)
     _topic = dev_type
-    #_topic = '/'.join((dev_type, UID))
     _payload = '{}/{{\"ts\": {}}}'.format(cmd, TS)
     with contexts.PacketEncoder() as encoder:
-        pkg = BasePacket(dev_type=dev_type)
-        pkg.command = cmd
-        message = encoder.encode(pkg, TS)
-        assert pkg.payload is None, f'{pkg.payload}'
-        assert not pkg.payload.get('task_id'), f'task_id assigned by package {pkg}'
-        assert not encoder.data.get('task_id'), f'task_id assigned by encoder: {message}'
-        assert encoder.timestamp == TS, 'bad encoder timestamp'
-        assert message[0] == _topic, message
-        assert message[1] == _payload, message
+        pkg = encoder.load(cmd, dev_type=dev_type)
+        assert isinstance(pkg, packets.PING), f'wrong instance: {type(pkg)}'
+
+
+def test_encoder_encode(fake_mqtt):
+    """ Smoke test encoder encode method"""
+    cmd = 'PING'
+    dev_type = get_random_from(dev_types)
+    _timestamp = int(time.time())
+    _topic = dev_type
+    _payload = '{}/{{\"ts\": {}}}'.format(cmd, TS)
+    with contexts.PacketEncoder() as encoder:
+        pkg = encoder.load(cmd, dev_type=dev_type)
+        message = encoder.encode(pkg, timestamp=_timestamp)
+        assert encoder.timestamp == _timestamp
+        assert message[0] == _topic, f"bad topic in {message}"
+        assert message[1] == _payload, f"bad payload in {message}"
         with fake_mqtt(message) as fm:
             assert fm.topic == _topic, fm
             assert fm.payload == bytes(_payload, 'utf-8'), fm
 
 
-def test_timestamp_basic(fake_mqtt):
+def test_timestamp_not_provided(fake_mqtt):
+    """Test encoder with timestamp not provided"""
     with contexts.PacketEncoder() as encoder:
         dev_type = get_random_from(dev_types)
-        timestamp = int(time.time())
         pkg = encoder.load(packet_type='PING',
                            dev_type=dev_type,
                            uid=UID)
-        assert not pkg.ts, 'wrongfully assigned timestamp to pkg'
         message = encoder.encode(pkg)
-        ts = json.loads(message[1].split('/')[1]).get('ts')
+        ts = json.loads(message[1].split('/')[1])['ts']
+        assert not pkg.ts, 'pkg should not have timestamp'
         assert encoder.timestamp == ts, 'bad timestamp'
 
 
-def test_timestamp_loaded(fake_mqtt):
+def test_timestamp_provided(fake_mqtt):
+    """Test encoder with timestamp provided"""
+    timestamp = int(time.time())
     with contexts.PacketEncoder() as encoder:
         dev_type = get_random_from(dev_types)
-        timestamp = int(time.time())
-        payload = {'data': 'data'}
-        pkg = encoder.load(packet_type='SUP',
+        pkg = encoder.load(packet_type='PING',
                            dev_type=dev_type,
-                           payload=payload,
                            uid=UID)
-        assert not pkg.ts, 'wrongfully assigned timestamp to pkg'
-        message = encoder.encode(pkg)
-        ts = json.loads(message[1].split('/')[1]).get('ts')
+        message = encoder.encode(pkg, timestamp=timestamp)
+        ts = json.loads(message[1].split('/')[1])['ts']
+        assert not pkg.ts, 'pkg should not have timestamp'
         assert encoder.timestamp == ts, 'bad timestamp'
 
-# encoding/decoding tests
 
-# strange behavior with task_id
-@pytest.mark.parametrize('cmd', ('PING',))
-def test_encdec_ping(cmd, fake_mqtt):
+def test_encdec_ping_broadcast(fake_mqtt):
+    """ Test ping without device UID """
+    cmd = 'PING'
+    with contexts.PacketEncoder() as encoder:
+        dev_type = get_random_from(dev_types)
+        res = encoder.load(packet_type=cmd,
+                           dev_type=dev_type)
+        message = encoder.encode(res)
+        test_payload = bytes('%s/{\"ts\": %s}' % \
+                             (cmd, encoder.timestamp), 'utf-8')
+
+        with fake_mqtt(message) as fm:
+            assert fm.payload == test_payload, f"bad payload for {fm}"
+            assert fm.topic == dev_type, f"bad topic for {fm}"
+
+            with contexts.PacketDecoder() as decoder:
+                decoded = decoder.decode(fm)
+
+                assert decoded.get('command') == cmd
+                assert decoded.get('dev_type') == dev_type
+
+
+@pytest.mark.parametrize('cmd', ('PING', 'PONG',))
+def test_encdec_ping_unicast(cmd, fake_mqtt):
     with contexts.PacketEncoder() as encoder:
         dev_type = get_random_from(dev_types)
         res = encoder.load(packet_type=cmd,
@@ -75,6 +99,7 @@ def test_encdec_ping(cmd, fake_mqtt):
                              (cmd, encoder.timestamp), 'utf-8')
 
         with fake_mqtt(message) as fm:
+            assert fm.topic == '/'.join((dev_type, UID))
             assert fm.payload == test_payload, fm
 
             with contexts.PacketDecoder() as decoder:
@@ -84,8 +109,8 @@ def test_encdec_ping(cmd, fake_mqtt):
                 assert decoded.get('dev_type') == dev_type
                 assert decoded.get('uid') == UID
 
-# skipped due to strange task_id
-@pytest.mark.parametrize('cmd', ('ACK',))
+
+@pytest.mark.parametrize('cmd', ('ACK', 'NACK'))
 def test_encdec_ack(cmd, fake_mqtt):
     with contexts.PacketEncoder() as encoder:
         dev_type = get_random_from(dev_types)
