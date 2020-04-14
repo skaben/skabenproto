@@ -12,3 +12,8 @@ ENV PATH="$VENV/bin:$PATH"
 
 RUN python -m pip install --upgrade pip && \
     python -m pip install -r /requirements.txt
+
+COPY ./skabenproto /skabenproto
+COPY ./deploy.sh /deploy.sh
+
+ENTRYPOINT flake8 /skabenproto; pytest /skabenproto

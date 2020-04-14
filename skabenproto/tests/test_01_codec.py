@@ -24,7 +24,7 @@ def test_encoder_encode(fake_mqtt):
     """ Smoke test encoder encode method"""
     cmd = 'PING'
     dev_type = get_random_from(dev_types)
-    _timestamp = int(time.time())
+    _timestamp = 123456789
     _topic = dev_type
     _payload = '{}/{{\"ts\": {}}}'.format(cmd, TS)
     with contexts.PacketEncoder() as encoder:
