@@ -105,7 +105,3 @@ def test_payload_with_task_id(packet, cmd):
 
     assert pkg.command == cmd, 'bad command assigned'
     assert pkg.content.get('task_id') == TASK_ID, 'bad task_id'
-
-
-def test_fail():
-    assert 1 == 0, "no deploy pls"
