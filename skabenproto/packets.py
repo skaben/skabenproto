@@ -128,6 +128,7 @@ class INFO(PayloadPacket):
                          task_id=task_id,
                          uid=uid)
 
+
 class CUP(PayloadPacket):
     """
         Client UPdate - update client config
@@ -139,6 +140,7 @@ class CUP(PayloadPacket):
                          task_id=task_id,
                          uid=uid,
                          timestamp=timestamp)
+
 
 class SUP(PayloadPacket):
     """

@@ -1,0 +1,14 @@
+version: '3'
+
+services:
+  skabenproto:
+    build: .
+    volumes:
+      - .setup.py:/app/setup.py
+      - .deploy.sh:/app/deploy.sh
+      - ./skabenproto:/app/skabenproto
+    command: >
+      sh -c "flake8 /app/skabenproto && \
+             pytest /app/skabenproto &&
+             /app/deploy.sh"
+    env_file: ".env"
