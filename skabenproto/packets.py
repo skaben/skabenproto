@@ -6,15 +6,13 @@ class BasePacket:
     command = str()
 
     def __init__(self, dev_type, uid=None, timestamp=None):
-        self.topic = self.dev_type if not uid else f"{dev_type}/{uid}"  # assign mqtt topic
-        self.timestamp = timestamp if timestamp else 0  # assign timestamp if provided
+        self.topic = "/".join([_ for _ in (dev_type, uid, self.command) if _ not in (None, "")])
         self.content = {
-            'command': self.command,
-            'timestamp': self.timestamp,
+            "timestamp": timestamp if timestamp else 0  # assign timestamp if provided
         }
 
     def __repr__(self):
-        return f"{self.topic} {self.data}"
+        return f"{self.topic} {self.content}"
 
 # ping packets
 
@@ -24,7 +22,7 @@ class PING(BasePacket):
         Ping packet. Broadcast only.
     """
     def __init__(self, dev_type, uid=None, timestamp=None):
-        self.command = 'PING'
+        self.command = "PING"
         super().__init__(dev_type=dev_type,
                          uid=uid,
                          timestamp=timestamp)
@@ -36,7 +34,7 @@ class PONG(BasePacket):
         Should send timestamp value of PING
     """
     def __init__(self, dev_type, uid, timestamp):
-        self.command = 'PONG'
+        self.command = "PONG"
         super().__init__(dev_type=dev_type,
                          uid=uid,
                          timestamp=timestamp)
@@ -47,7 +45,7 @@ class PINGLegacy(BasePacket):
         Ping packet. Broadcast only.
     """
     def __init__(self, dev_type):
-        self.command = '*/PING'
+        self.command = "*/PING"
         super().__init__(dev_type=dev_type)
 
 # service packets
@@ -60,7 +58,7 @@ class WAIT(BasePacket):
         wait timeout or receive nowait-packet (CUP/SUP)
     """
     def __init__(self, dev_type, timeout, uid, timestamp):
-        self.command = 'WAIT'
+        self.command = "WAIT"
         super().__init__(dev_type=dev_type,
                          uid=uid,
                          timestamp=timestamp)
@@ -69,8 +67,8 @@ class WAIT(BasePacket):
             try:
                 timeout = round(int(timeout))
             except Exception:
-                raise ValueError('bad timeout value: %s' % timeout)
-        self.content.update({'timeout': timeout})
+                raise ValueError(f"bad timeout value: {timeout}")
+        self.content.update({"timeout": timeout})
 
 
 class ACK(BasePacket):
@@ -79,11 +77,11 @@ class ACK(BasePacket):
         Should send ts of previous packet
     """
     def __init__(self, dev_type, task_id, uid, timestamp):
-        self.command = 'ACK'
+        self.command = "ACK"
         super().__init__(dev_type=dev_type,
                          uid=uid,
                          timestamp=timestamp)
-        self.content.update({'task_id': task_id})
+        self.content.update({"task_id": task_id})
 
 
 class NACK(BasePacket):
@@ -92,11 +90,11 @@ class NACK(BasePacket):
         Should send ts of previous packet
     """
     def __init__(self, dev_type, task_id, uid, timestamp):
-        self.command = 'NACK'
+        self.command = "NACK"
         super().__init__(dev_type=dev_type,
                          uid=uid,
                          timestamp=timestamp)
-        self.content.update({'task_id': task_id})
+        self.content.update({"task_id": task_id})
 
 
 # packets with payload
@@ -113,7 +111,9 @@ class PayloadPacket(BasePacket):
         super().__init__(dev_type=dev_type,
                          uid=uid,
                          timestamp=timestamp)
-        self.content.update({'payload': payload})  # separated namespace
+        self.content.update({"payload": payload})  # separated namespace
+        if task_id:
+            self.content.update({"task_id": task_id})
 
 
 class INFO(PayloadPacket):
@@ -121,7 +121,7 @@ class INFO(PayloadPacket):
         Multipurpose payload packet
     """
     def __init__(self, dev_type, payload, uid, timestamp, task_id=None):
-        self.command = 'INFO'
+        self.command = "INFO"
         super().__init__(dev_type=dev_type,
                          payload=payload,
                          timestamp=timestamp,
@@ -129,12 +129,12 @@ class INFO(PayloadPacket):
                          uid=uid)
 
 
-class CUP(PayloadPacket):
+class SUP(PayloadPacket):
     """
-        Client UPdate - update client config
+        Server UPdate - update server config
     """
-    def __init__(self, dev_type, payload, task_id, timestamp, uid=None):
-        self.command = 'CUP'
+    def __init__(self, dev_type, payload, uid, timestamp, task_id=None):
+        self.command = "SUP"
         super().__init__(dev_type=dev_type,
                          payload=payload,
                          task_id=task_id,
@@ -142,12 +142,12 @@ class CUP(PayloadPacket):
                          timestamp=timestamp)
 
 
-class SUP(PayloadPacket):
+class CUP(PayloadPacket):
     """
-        Server UPdate - update server config
+        Client UPdate - update client config
     """
-    def __init__(self, dev_type, payload, uid, timestamp, task_id=None):
-        self.command = 'SUP'
+    def __init__(self, dev_type, payload, task_id, timestamp, uid=None):
+        self.command = "CUP"
         super().__init__(dev_type=dev_type,
                          payload=payload,
                          task_id=task_id,
