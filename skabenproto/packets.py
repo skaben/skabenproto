@@ -1,3 +1,6 @@
+import json
+
+
 class BasePacket:
     """
         Base packet class
@@ -7,12 +10,19 @@ class BasePacket:
 
     def __init__(self, dev_type, uid=None, timestamp=None):
         self.topic = "/".join([_ for _ in (dev_type, uid, self.command) if _ not in (None, "")])
-        self.content = {
+        self.payload = {
             "timestamp": timestamp if timestamp else 0  # assign timestamp if provided
         }
 
+    def encode(self):
+        try:
+            payload = json.dumps(self.payload).encode('utf-8')
+            return tuple((self.topic, payload))
+        except Exception:
+            raise
+
     def __repr__(self):
-        return f"{self.topic} {self.content}"
+        return f"{self.topic} {self.payload}"
 
 # ping packets
 
@@ -68,7 +78,7 @@ class WAIT(BasePacket):
                 timeout = round(int(timeout))
             except Exception:
                 raise ValueError(f"bad timeout value: {timeout}")
-        self.content.update({"timeout": timeout})
+        self.payload.update({"timeout": timeout})
 
 
 class ACK(BasePacket):
@@ -81,7 +91,7 @@ class ACK(BasePacket):
         super().__init__(dev_type=dev_type,
                          uid=uid,
                          timestamp=timestamp)
-        self.content.update({"task_id": task_id})
+        self.payload.update({"task_id": task_id})
 
 
 class NACK(BasePacket):
@@ -94,62 +104,62 @@ class NACK(BasePacket):
         super().__init__(dev_type=dev_type,
                          uid=uid,
                          timestamp=timestamp)
-        self.content.update({"task_id": task_id})
+        self.payload.update({"task_id": task_id})
 
 
 # packets with payload
 
 
-class PayloadPacket(BasePacket):
+class DataholdPacket(BasePacket):
     """
         Loaded packet basic class.
     """
 
-    payload = {}  # packet inner payload
+    datahold = {}  # packet data load
 
-    def __init__(self, dev_type, payload, timestamp, uid=None, task_id=None):
+    def __init__(self, dev_type, datahold, timestamp, uid=None, task_id=None):
         super().__init__(dev_type=dev_type,
                          uid=uid,
                          timestamp=timestamp)
-        self.content.update({"payload": payload})  # separated namespace
+        self.payload.update({"datahold": datahold})  # separated namespace
         if task_id:
-            self.content.update({"task_id": task_id})
+            self.payload.update({"task_id": task_id})
 
 
-class INFO(PayloadPacket):
+class INFO(DataholdPacket):
     """
         Multipurpose payload packet
     """
-    def __init__(self, dev_type, payload, uid, timestamp, task_id=None):
+    def __init__(self, dev_type, datahold, uid, timestamp, task_id=None):
         self.command = "INFO"
         super().__init__(dev_type=dev_type,
-                         payload=payload,
+                         datahold=datahold,
                          timestamp=timestamp,
                          task_id=task_id,
                          uid=uid)
 
 
-class SUP(PayloadPacket):
+class SUP(DataholdPacket):
     """
         Server UPdate - update server config
     """
-    def __init__(self, dev_type, payload, uid, timestamp, task_id=None):
+    def __init__(self, dev_type, datahold, uid, timestamp, task_id=None):
         self.command = "SUP"
         super().__init__(dev_type=dev_type,
-                         payload=payload,
+                         datahold=datahold,
                          task_id=task_id,
                          uid=uid,
                          timestamp=timestamp)
 
 
-class CUP(PayloadPacket):
+class CUP(DataholdPacket):
     """
         Client UPdate - update client config
     """
-    def __init__(self, dev_type, payload, task_id, timestamp, uid=None):
+    def __init__(self, dev_type, datahold, task_id, timestamp, uid=None):
         self.command = "CUP"
         super().__init__(dev_type=dev_type,
-                         payload=payload,
+                         datahold=datahold,
                          task_id=task_id,
                          uid=uid,
                          timestamp=timestamp)

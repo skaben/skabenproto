@@ -14,7 +14,7 @@ TS = int(time.time())
 UID = "00ff00ff00ff"
 TASK_ID = "51048"
 
-PAYLOAD = {"test": "value",
+DATA = {"test": "value",
            "list": ['1', 0, True],
            "bool": False,
            "dict": {'test': 'value'}}
@@ -32,7 +32,7 @@ def test_base_packet():
                      timestamp=TS)
 
     assert pkg.topic == f"{dev_type}/{UID}", "bad topic assigned"
-    assert pkg.content.get("timestamp") == TS, "bad timestamp"
+    assert pkg.payload.get("timestamp") == TS, "bad timestamp"
 
 
 def test_base_packet_no_timestamp():
@@ -40,7 +40,7 @@ def test_base_packet_no_timestamp():
     pkg = BasePacket(dev_type=dev_type,
                      uid=UID)
 
-    assert pkg.content.get("timestamp") == 0, "bad timestamp assigned, should be 0 if not provided"
+    assert pkg.payload.get("timestamp") == 0, "bad timestamp assigned, should be 0 if not provided"
 
 
 def test_base_packet_no_uid():
@@ -70,24 +70,24 @@ def test_ack_nack(packet, cmd):
     dev_type = get_random_from(dev_types)
     pkg = packet(dev_type=dev_type, uid=UID, timestamp=TS, task_id=TASK_ID)
 
-    assert pkg.content.get('task_id') == TASK_ID, 'not assigned task id'
+    assert pkg.payload.get('task_id') == TASK_ID, 'not assigned task id'
 
 
-def test_base_payload_packet():
+def test_base_datahold_packet():
     dev_type = get_random_from(dev_types)
-    pkg = PayloadPacket(dev_type=dev_type,
-                        payload=PAYLOAD,
-                        timestamp=TS)
+    pkg = DataholdPacket(dev_type=dev_type,
+                         datahold=DATA,
+                         timestamp=TS)
 
-    assert pkg.content.get('timestamp') == TS, 'timestamp not assigned'
-    assert pkg.content.get('payload') == PAYLOAD, 'payload not assigned'
+    assert pkg.payload.get('timestamp') == TS, 'timestamp not assigned'
+    assert pkg.payload.get('datahold') == DATA, 'datahold not assigned'
 
 
 @pytest.mark.parametrize(("packet", "cmd"), ((INFO, "INFO"), (SUP, "SUP")))
-def test_payload_no_task_id(packet, cmd):
+def test_datahold_no_task_id(packet, cmd):
     dev_type = get_random_from(dev_types)
     pkg = packet(dev_type=dev_type,
-                 payload=PAYLOAD,
+                 datahold=DATA,
                  timestamp=TS,
                  uid=UID)
 
@@ -95,13 +95,13 @@ def test_payload_no_task_id(packet, cmd):
 
 
 @pytest.mark.parametrize(("packet", "cmd"), ((INFO, "INFO"), (SUP, "SUP"), (CUP, "CUP")))
-def test_payload_with_task_id(packet, cmd):
+def test_datahold_with_task_id(packet, cmd):
     dev_type = get_random_from(dev_types)
     pkg = packet(dev_type=dev_type,
-                 payload=PAYLOAD,
+                 datahold=DATA,
                  timestamp=TS,
                  uid=UID,
                  task_id=TASK_ID)
 
     assert pkg.command == cmd, 'bad command assigned'
-    assert pkg.content.get('task_id') == TASK_ID, 'bad task_id'
+    assert pkg.payload.get('task_id') == TASK_ID, 'bad command assigned'
