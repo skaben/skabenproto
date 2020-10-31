@@ -7,7 +7,7 @@ command protocol for dungeon devices
 
 `<device_id>` - MAC-адрес устройства.\
 `<task_id>` - уникальная последовательность символов (alphanumeric).\
-`<data_dictionary>` - полезная нагрузка в виде словаря.\
+`<data_dictionary>` - полезная нагрузка в виде словаря.
 
 ##### пинг-пакеты
 
@@ -18,7 +18,7 @@ command protocol for dungeon devices
 
 при получении пакета клиент записывает значение timestamp в локальный файл.
 
-`PONG` - ответ от клиента\
+`PONG` - ответ от клиента
 
 - заголовок: `<channel_id>/<device_id>/PONG`
 - содержимое: `b'{"timestamp": 123456789}`
