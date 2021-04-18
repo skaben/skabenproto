@@ -32,7 +32,7 @@ class PING(BasePacket):
         Ping packet. Broadcast only.
     """
     def __init__(self, topic, uid=None, timestamp=None):
-        self.command = "PING"
+        self.command = "ping"
         super().__init__(topic=topic,
                          uid=uid,
                          timestamp=timestamp)
@@ -44,21 +44,10 @@ class PONG(BasePacket):
         Should send timestamp value of PING
     """
     def __init__(self, topic, uid, timestamp):
-        self.command = "PONG"
+        self.command = "pong"
         super().__init__(topic=topic,
                          uid=uid,
                          timestamp=timestamp)
-
-
-class PINGLegacy(BasePacket):
-    """
-        Ping packet. Broadcast only.
-    """
-    def __init__(self, topic):
-        self.command = "*/PING"
-        super().__init__(topic=topic)
-
-# service packets
 
 
 class WAIT(BasePacket):
@@ -68,7 +57,7 @@ class WAIT(BasePacket):
         wait timeout or receive nowait-packet (CUP/SUP)
     """
     def __init__(self, topic, timeout, uid, timestamp):
-        self.command = "WAIT"
+        self.command = "wait"
         super().__init__(topic=topic,
                          uid=uid,
                          timestamp=timestamp)
@@ -87,7 +76,7 @@ class ACK(BasePacket):
         Should send ts of previous packet
     """
     def __init__(self, topic, task_id, uid, timestamp):
-        self.command = "ACK"
+        self.command = "ack"
         super().__init__(topic=topic,
                          uid=uid,
                          timestamp=timestamp)
@@ -100,7 +89,7 @@ class NACK(BasePacket):
         Should send ts of previous packet
     """
     def __init__(self, topic, task_id, uid, timestamp):
-        self.command = "NACK"
+        self.command = "nack"
         super().__init__(topic=topic,
                          uid=uid,
                          timestamp=timestamp)
@@ -131,7 +120,7 @@ class INFO(DataholdPacket):
         Multipurpose payload packet
     """
     def __init__(self, topic, datahold, uid, timestamp, task_id=None):
-        self.command = "INFO"
+        self.command = "info"
         super().__init__(topic=topic,
                          datahold=datahold,
                          timestamp=timestamp,
@@ -141,10 +130,10 @@ class INFO(DataholdPacket):
 
 class SUP(DataholdPacket):
     """
-        Server UPdate - update server config
+        State Update - update server config and global dungeon state
     """
     def __init__(self, topic, datahold, uid, timestamp, task_id=None):
-        self.command = "SUP"
+        self.command = "sup"
         super().__init__(topic=topic,
                          datahold=datahold,
                          task_id=task_id,
@@ -154,10 +143,10 @@ class SUP(DataholdPacket):
 
 class CUP(DataholdPacket):
     """
-        Client UPdate - update client config
+        Client/Config Update - update client config
     """
     def __init__(self, topic, datahold, task_id, timestamp, uid=None):
-        self.command = "CUP"
+        self.command = "cup"
         super().__init__(topic=topic,
                          datahold=datahold,
                          task_id=task_id,
