@@ -50,7 +50,7 @@ def test_base_packet_no_uid():
     assert pkg.topic == f'{topic}'
 
 
-@pytest.mark.parametrize(("packet", "cmd"), ((PING, "PING"), (PINGLegacy, "*/PING")))
+@pytest.mark.parametrize(("packet", "cmd"), ((PING, "ping"))
 def test_pings_normal(packet, cmd):
     topic = 'test'
     pkg = packet(topic=topic)
@@ -65,7 +65,7 @@ def test_pong_normal():
     assert pong.command == 'PONG', f'bad command: {pong.command}'
 
 
-@pytest.mark.parametrize(("packet", "cmd"), ((ACK, "ACK"), (NACK, "NACK")))
+@pytest.mark.parametrize(("packet", "cmd"), ((ACK, "ack"), (NACK, "nack")))
 def test_ack_nack(packet, cmd):
     topic = get_random_from(topics)
     pkg = packet(topic=topic, uid=UID, timestamp=TS, task_id=TASK_ID)
@@ -83,7 +83,7 @@ def test_base_datahold_packet():
     assert pkg.payload.get('datahold') == DATA, 'datahold not assigned'
 
 
-@pytest.mark.parametrize(("packet", "cmd"), ((INFO, "INFO"), (SUP, "SUP")))
+@pytest.mark.parametrize(("packet", "cmd"), ((INFO, "info"), (SUP, "sup")))
 def test_datahold_no_task_id(packet, cmd):
     topic = get_random_from(topics)
     pkg = packet(topic=topic,
@@ -94,7 +94,7 @@ def test_datahold_no_task_id(packet, cmd):
     assert pkg.command == cmd, 'bad command assigned'
 
 
-@pytest.mark.parametrize(("packet", "cmd"), ((INFO, "INFO"), (SUP, "SUP"), (CUP, "CUP")))
+@pytest.mark.parametrize(("packet", "cmd"), ((INFO, "info"), (SUP, "sup"), (CUP, "cup")))
 def test_datahold_with_task_id(packet, cmd):
     topic = get_random_from(topics)
     pkg = packet(topic=topic,
