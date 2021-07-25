@@ -20,11 +20,12 @@ jobs:
         python -m pip install --upgrade pip
         pip install flake8 pytest
         if [ -f build_requirements.txt ]; then pip install -r build_requirements.txt; fi
-    - name: Lint with flake8
+    - name: Lint
       id: lint
       run: |
-        # stop the build if there are Python syntax errors or undefined names
         flake8 ./skabenproto --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        autoflake --remove-all-unused-imports --recursive --remove-unused-variables --in-place ./skabenproto --exclude=__init__.py
+        isort --multi-line=3 --trailing-comma --force-grid-wrap=0 --combine-as --line-width 127 --recursive --apply ./skabenproto
     - name: Test with pytest
       id: test
       run: |
@@ -41,5 +42,5 @@ jobs:
         uses: devmasx/merge-branch@v1.3.1
         with:
           type: now
-          target_branch: uat
+          target_branch: main
           github_token: ${{ github.token }}
