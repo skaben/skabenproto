@@ -50,7 +50,7 @@ def test_base_packet_no_uid():
     assert pkg.topic == f'{topic}'
 
 
-@pytest.mark.parametrize(("packet", "cmd"), ((sp.PING, "ping"))
+@pytest.mark.parametrize(("packet", "cmd"), [(sp.PING, "ping")])
 def test_pings_normal(packet, cmd):
     topic = 'test'
     pkg = packet(topic=topic)
@@ -62,7 +62,7 @@ def test_pong_normal():
     topic = 'test'
     pong = sp.PONG(topic=topic, uid=UID, timestamp=TS)
 
-    assert pong.command == 'PONG', f'bad command: {pong.command}'
+    assert pong.command == 'pong', f'bad command: {pong.command}'
 
 
 @pytest.mark.skip(reason="not used")
