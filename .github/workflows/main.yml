@@ -30,7 +30,7 @@ jobs:
       run: |
         pytest ./skabenproto
 
- merge:
+  merge:
 
     runs-on: ubuntu-latest
 
