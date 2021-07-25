@@ -1,0 +1,45 @@
+name: SKABEN protocol package
+
+on:
+  push:
+    branches: [ unstable ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.7
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 pytest
+        if [ -f build_requirements.txt ]; then pip install -r build_requirements.txt; fi
+    - name: Lint with flake8
+      id: lint
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 ./skabenproto --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Test with pytest
+      id: test
+      run: |
+        pytest ./skabenproto
+
+ merge:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@master
+
+      - name: Merge test -> master
+        uses: devmasx/merge-branch@v1.3.1
+        with:
+          type: now
+          target_branch: uat
+          github_token: ${{ github.token }}
