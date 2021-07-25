@@ -1,4 +1,5 @@
 import json
+from typing import Optional
 
 
 class BasePacket:
@@ -8,11 +9,17 @@ class BasePacket:
 
     command = str()
 
-    def __init__(self, topic, uid=None, timestamp=None):
+    def __init__(self,
+                 topic: str,
+                 uid: Optional[str] = None,
+                 timestamp: Optional[int] = None,
+                 config_hash: Optional[str] = None):
         self.topic = "/".join([_ for _ in (topic, uid, self.command) if _ not in (None, "")])
         self.payload = {
             "timestamp": timestamp if timestamp else 0  # assign timestamp if provided
         }
+        if config_hash:
+            self.payload.update(hash=config_hash)
 
     def encode(self):
         try:
@@ -31,7 +38,10 @@ class PING(BasePacket):
     """
         Ping packet. Broadcast only.
     """
-    def __init__(self, topic, uid=None, timestamp=None):
+    def __init__(self,
+                 topic: str,
+                 uid: Optional[str] = None,
+                 timestamp: Optional[int] = None):
         self.command = "ping"
         super().__init__(topic=topic,
                          uid=uid,
@@ -42,12 +52,18 @@ class PONG(BasePacket):
     """
         PONG packet, send only in response to PING
         Should send timestamp value of PING
+        Can send config hash as .conf attribute
     """
-    def __init__(self, topic, uid, timestamp):
+    def __init__(self,
+                 topic: str,
+                 uid: str,
+                 timestamp: int,
+                 config_hash: Optional[str] = None):
         self.command = "pong"
         super().__init__(topic=topic,
                          uid=uid,
-                         timestamp=timestamp)
+                         timestamp=timestamp,
+                         config_hash=config_hash)
 
 
 class WAIT(BasePacket):
@@ -56,7 +72,7 @@ class WAIT(BasePacket):
         before sending another PONG client should either
         wait timeout or receive nowait-packet (CUP/SUP)
     """
-    def __init__(self, topic, timeout, uid, timestamp):
+    def __init__(self, topic: str, timeout: int, uid: str, timestamp: int):
         self.command = "wait"
         super().__init__(topic=topic,
                          uid=uid,
@@ -67,7 +83,7 @@ class WAIT(BasePacket):
                 timeout = round(int(timeout))
             except Exception:
                 raise ValueError(f"bad timeout value: {timeout}")
-        self.payload.update({"timeout": timeout})
+        self.payload.update(timeout=timeout)
 
 
 class ACK(BasePacket):
@@ -75,12 +91,13 @@ class ACK(BasePacket):
         Confirm operations on previous packet as successful
         Should send ts of previous packet
     """
-    def __init__(self, topic, task_id, uid, timestamp):
+    def __init__(self, topic: str, task_id: str, uid: str, timestamp: int, config_hash: str):
         self.command = "ack"
         super().__init__(topic=topic,
                          uid=uid,
-                         timestamp=timestamp)
-        self.payload.update({"task_id": task_id})
+                         timestamp=timestamp,
+                         config_hash=config_hash)
+        self.payload.update(task_id=task_id)
 
 
 class NACK(BasePacket):
@@ -88,12 +105,13 @@ class NACK(BasePacket):
         Confirm operations on previous packet as unsuccessful
         Should send ts of previous packet
     """
-    def __init__(self, topic, task_id, uid, timestamp):
+    def __init__(self, topic: str, task_id: str, uid: str, timestamp: int, config_hash: str):
         self.command = "nack"
         super().__init__(topic=topic,
                          uid=uid,
-                         timestamp=timestamp)
-        self.payload.update({"task_id": task_id})
+                         timestamp=timestamp,
+                         config_hash=config_hash)
+        self.payload.update(task_id=task_id)
 
 
 # packets with payload
@@ -106,20 +124,32 @@ class DataholdPacket(BasePacket):
 
     datahold = {}  # packet data load
 
-    def __init__(self, topic, datahold, timestamp, uid=None, task_id=None):
+    def __init__(self,
+                 topic: str,
+                 datahold: dict,
+                 timestamp: int,
+                 config_hash: Optional[str] = None,
+                 uid: Optional[str] = None,
+                 task_id: Optional[str] = None):
         super().__init__(topic=topic,
                          uid=uid,
-                         timestamp=timestamp)
-        self.payload.update({"datahold": datahold})  # separated namespace
+                         timestamp=timestamp,
+                         config_hash=config_hash)
+        self.payload.update(datahold=datahold)  # отдельное пространство имен для данных
         if task_id:
-            self.payload.update({"task_id": task_id})
+            self.payload.update(task_id=task_id)
 
 
 class INFO(DataholdPacket):
     """
         Multipurpose payload packet
     """
-    def __init__(self, topic, datahold, uid, timestamp, task_id=None):
+    def __init__(self,
+                 topic: str,
+                 datahold: dict,
+                 uid: str,
+                 timestamp: int,
+                 task_id: Optional[str] = None):
         self.command = "info"
         super().__init__(topic=topic,
                          datahold=datahold,
@@ -132,7 +162,12 @@ class SUP(DataholdPacket):
     """
         State Update - update server config and global dungeon state
     """
-    def __init__(self, topic, datahold, uid, timestamp, task_id=None):
+    def __init__(self,
+                 topic: str,
+                 datahold: dict,
+                 uid: str,
+                 timestamp: int,
+                 task_id: Optional[str] = None):
         self.command = "sup"
         super().__init__(topic=topic,
                          datahold=datahold,
@@ -145,10 +180,17 @@ class CUP(DataholdPacket):
     """
         Client/Config Update - update client config
     """
-    def __init__(self, topic, datahold, task_id, timestamp, uid=None):
+    def __init__(self,
+                 topic: str,
+                 datahold: dict,
+                 task_id: str,
+                 timestamp: int,
+                 uid: Optional[str] = None,
+                 config_hash: Optional[str] = None):
         self.command = "cup"
         super().__init__(topic=topic,
                          datahold=datahold,
                          task_id=task_id,
                          uid=uid,
-                         timestamp=timestamp)
+                         timestamp=timestamp,
+                         config_hash=config_hash)
